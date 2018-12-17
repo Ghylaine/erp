@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Foundation\Inspiring;
+use Illuminate\Support\Facades\DB;
 
 class AgaharaweReport extends Command
 {
@@ -39,5 +40,9 @@ class AgaharaweReport extends Command
     public function handle()
     {
         Command::comment(Inspiring::quote());
+        $users = DB::select('select * from llx_user');
+        foreach ($users as $user) {
+            $this->comment($user->lastname);
+        }
     }
 }
