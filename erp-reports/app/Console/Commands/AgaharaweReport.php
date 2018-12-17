@@ -6,6 +6,10 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\DB;
 
+use Mail;
+use App\ReportInfo;
+use App\Mail\Report;
+
 class AgaharaweReport extends Command
 {
     /**
@@ -23,6 +27,25 @@ class AgaharaweReport extends Command
     protected $description = 'Execute Agaharawe Reports Process';
 
     /**
+     * The report query.
+     *
+     * @var string
+     */
+    private $query = 'select rowid, lastname, firstname from llx_user';
+
+    /**
+     * Report Recipients emails.
+     *
+     * @var string
+     */
+    private $recipients = 'ppascal.sibomana@gmail.com';
+
+    private $dateFrom;
+    private $dateTo;
+    private $clientName;
+    private $reportName;
+
+    /**
      * Create a new command instance.
      *
      * @return void
@@ -30,6 +53,10 @@ class AgaharaweReport extends Command
     public function __construct()
     {
         parent::__construct();
+        $this->dateFrom = date('d.m.Y',strtotime("-1 days"));
+        $this->dateTo = date('d.m.Y');
+        $this->clientName = 'Agaharawe';
+        $this->reportName = 'Rapport Agaharawe';
     }
 
     /**
@@ -39,10 +66,38 @@ class AgaharaweReport extends Command
      */
     public function handle()
     {
-        Command::comment(Inspiring::quote());
-        $users = DB::select('select * from llx_user');
-        foreach ($users as $user) {
-            $this->comment($user->lastname);
+        $dirname = env('DOWNLOAD_PATH', './');
+
+        if (!is_dir($dirname))
+        {
+            mkdir($dirname, 0755, true);
         }
+
+        $filename = $dirname . $this->reportName
+            . $this->dateFrom . "-" . $this->dateTo. ".csv";
+        $handle = fopen($filename, 'w');
+        fputcsv($handle, [
+            "id",
+            "name"
+        ]);
+
+        $users = DB::select($this->query);
+        foreach ($users as $user) {
+            fputcsv($handle, [
+                $user->rowid,
+                $user->lastname
+            ]);
+        }
+
+        fclose($handle);
+
+        $reportInfo = new ReportInfo($this->clientName,
+                        $this->reportName, $this->dateFrom, $this->dateTo);
+
+        $result = Mail::to($this->recipients)->send(new Report($reportInfo));
+        // Mail::to($this->recipients)->queue(new Report($reportInfo));
+
+        $this->comment($result);
+
     }
 }
