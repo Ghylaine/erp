@@ -34,6 +34,10 @@ class Report extends Mailable
                 . ' du ' . $this->reportInfo->dateFrom
                 . ' au '. $this->reportInfo->dateTo;
         return $this->subject($subject)
-            ->view('emails.report');
+            ->from('support@sopami.com', 'BitSolutions')
+            ->view('emails.report')
+            ->attach($this->reportInfo->filePath, [
+                'mime' => 'type'
+            ]);;
     }
 }

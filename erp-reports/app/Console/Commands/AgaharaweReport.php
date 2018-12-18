@@ -38,7 +38,7 @@ class AgaharaweReport extends Command
      *
      * @var string
      */
-    private $recipients = 'ppascal.sibomana@gmail.com';
+    private $recipients = ['ppascal.sibomana@gmail.com', 'bigighylaine@gmail.com'];
 
     private $dateFrom;
     private $dateTo;
@@ -56,7 +56,7 @@ class AgaharaweReport extends Command
         $this->dateFrom = date('d.m.Y',strtotime("-1 days"));
         $this->dateTo = date('d.m.Y');
         $this->clientName = 'Agaharawe';
-        $this->reportName = 'Rapport Agaharawe';
+        $this->reportName = 'Rapport-Agaharawe';
     }
 
     /**
@@ -73,9 +73,12 @@ class AgaharaweReport extends Command
             mkdir($dirname, 0755, true);
         }
 
-        $filename = $dirname . $this->reportName
+        $filename = $this->reportName . "-"
             . $this->dateFrom . "-" . $this->dateTo. ".csv";
-        $handle = fopen($filename, 'w');
+
+        $fullName = $dirname . $filename;
+
+        $handle = fopen($fullName, 'w');
         fputcsv($handle, [
             "id",
             "name"
@@ -92,7 +95,7 @@ class AgaharaweReport extends Command
         fclose($handle);
 
         $reportInfo = new ReportInfo($this->clientName,
-                        $this->reportName, $this->dateFrom, $this->dateTo);
+                        $this->reportName, $this->dateFrom, $this->dateTo, $fullName, $filename);
 
         $result = Mail::to($this->recipients)->send(new Report($reportInfo));
         // Mail::to($this->recipients)->queue(new Report($reportInfo));
