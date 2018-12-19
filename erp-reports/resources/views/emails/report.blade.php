@@ -1,2 +1,2 @@
-<p>Hey {{ $reportInfo->clientName }}!</p>
-<p>Please find attached the report {{ $reportInfo->reportName }} for the periode of {{ $reportInfo->dateFrom }} to {{ $reportInfo->dateTo }}.</p>
+<p>Bonjour {{ $reportInfo->clientName }}!</p>
+<p>Veuillez trouver ci-joint le rapport {{ $reportInfo->reportName }} pour la periode du {{ $reportInfo->dateFrom }} au {{ $reportInfo->dateTo }}.</p>

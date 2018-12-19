@@ -31,7 +31,19 @@ class AgaharaweReport extends Command
      *
      * @var string
      */
-    private $query = 'select rowid, lastname, firstname from llx_user';
+    private $query = "SELECT  p.label as Article,
+        SUM(COALESCE(CASE WHEN type_mouvement = 3 THEN value END,0)) as 'IN',
+        SUM(COALESCE(CASE WHEN type_mouvement = 2 THEN value END,0)) * -1 as 'OUT',
+        sm.price as 'PU',
+        (SUM(COALESCE(CASE WHEN type_mouvement = 2 THEN value END,0)) * -1 * sm.price) as 'CASH',
+        ps.reel as Quantite, p.price as 'PrixUnitaireAchat',
+        (ps.reel * p.price) as 'PrixTotalAchat'
+        FROM llx_product_stock ps
+        INNER JOIN llx_product p ON ps.fk_product = p.rowid
+        INNER JOIN llx_stock_mouvement sm ON sm.fk_product = p.rowid
+        INNER JOIN llx_entrepot e ON ps.fk_entrepot = e.rowid
+        WHERE date(sm.datem) = date_sub(curdate(), INTERVAL 1 DAY)
+        GROUP BY p.rowid";
 
     /**
      * Report Recipients emails.
@@ -80,15 +92,27 @@ class AgaharaweReport extends Command
 
         $handle = fopen($fullName, 'w');
         fputcsv($handle, [
-            "id",
-            "name"
+            "Article",
+            "IN",
+            "OUT",
+            "PU",
+            "CASH",
+            "Quantite",
+            "PrixUnitaireAchat",
+            "PrixTotalAchat"
         ]);
 
-        $users = DB::select($this->query);
-        foreach ($users as $user) {
+        $articles = DB::select($this->query);
+        foreach ($articles as $article) {
             fputcsv($handle, [
-                $user->rowid,
-                $user->lastname
+                $article->Article,
+                $article->IN,
+                $article->OUT,
+                $article->PU,
+                $article->CASH,
+                $article->Quantite,
+                $article->PrixUnitaireAchat,
+                $article->PrixTotalAchat,
             ]);
         }
 
@@ -99,8 +123,6 @@ class AgaharaweReport extends Command
 
         $result = Mail::to($this->recipients)->send(new Report($reportInfo));
         // Mail::to($this->recipients)->queue(new Report($reportInfo));
-
-        $this->comment($result);
 
     }
 }
