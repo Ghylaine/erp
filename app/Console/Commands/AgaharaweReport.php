@@ -31,26 +31,40 @@ class AgaharaweReport extends Command
      *
      * @var string
      */
-    private $query = "SELECT  p.label as Article,
-        SUM(COALESCE(CASE WHEN type_mouvement = 3 THEN value END,0)) as 'IN',
-        SUM(COALESCE(CASE WHEN type_mouvement = 2 THEN value END,0)) * -1 as 'OUT',
-        sm.price as 'PU',
-        (SUM(COALESCE(CASE WHEN type_mouvement = 2 THEN value END,0)) * -1 * sm.price) as 'CASH',
-        ps.reel as Quantite, p.price as 'PrixUnitaireAchat',
-        (ps.reel * p.price) as 'PrixTotalAchat'
-        FROM llx_product_stock ps
-        INNER JOIN llx_product p ON ps.fk_product = p.rowid
-        INNER JOIN llx_stock_mouvement sm ON sm.fk_product = p.rowid
-        INNER JOIN llx_entrepot e ON ps.fk_entrepot = e.rowid
-        WHERE date(sm.datem) = date_sub(curdate(), INTERVAL 1 DAY)
-        GROUP BY p.rowid";
+    // private $query = "SELECT  p.label as Article,
+    //     SUM(COALESCE(CASE WHEN type_mouvement = 3 THEN value END,0)) as 'IN',
+    //     SUM(COALESCE(CASE WHEN type_mouvement = 2 THEN value END,0)) * -1 as 'OUT',
+    //     sm.price as 'PU',
+    //     (SUM(COALESCE(CASE WHEN type_mouvement = 2 THEN value END,0)) * -1 * sm.price) as 'CASH',
+    //     ps.reel as Quantite, p.price as 'PrixUnitaireAchat',
+    //     (ps.reel * p.price) as 'PrixTotalAchat'
+    //     FROM llx_product_stock ps
+    //     INNER JOIN llx_product p ON ps.fk_product = p.rowid
+    //     INNER JOIN llx_stock_mouvement sm ON sm.fk_product = p.rowid
+    //     INNER JOIN llx_entrepot e ON ps.fk_entrepot = e.rowid
+    //     WHERE date(sm.datem) = date_sub(curdate(), INTERVAL 3 DAY)
+    //     GROUP BY p.rowid";
+    private $query = "SELECT *, (a.OUT * a.GainU) as 'GainTotal' FROM (SELECT  p.label as Article,
+    SUM(COALESCE(CASE WHEN type_mouvement = 3 THEN value END,0)) as 'APPROVISIONEMENT',
+    ps.reel as 'STAY',
+    SUM(COALESCE(CASE WHEN type_mouvement = 2 THEN value END,0)) * -1 as 'OUT',
+    sm.price as 'PU',
+    (SUM(COALESCE(CASE WHEN type_mouvement = 2 THEN value END,0)) * -1 * sm.price) as 'CASH',
+    (sm.price - pfp.price) as 'GainU'
+    FROM llx_product p
+    LEFT JOIN llx_product_stock ps ON ps.fk_product = p.rowid
+    LEFT JOIN llx_product_fournisseur_price pfp on pfp.fk_product = p.rowid
+    LEFT JOIN llx_stock_mouvement sm ON sm.fk_product = p.rowid
+    WHERE (date(sm.datem) BETWEEN '2019-01-04 00:00:00' AND '2019-01-05 00:00:00')
+    GROUP BY p.rowid) as a";
 
     /**
      * Report Recipients emails.
      *
      * @var string
      */
-    private $recipients = ['ppascal.sibomana@gmail.com', 'bigighylaine@gmail.com'];
+    // private $recipients = ['ppascal.sibomana@gmail.com', 'bigighylaine@gmail.com'];
+    private $recipients = ['ppascal.sibomana@gmail.com'];
 
     private $dateFrom;
     private $dateTo;
@@ -65,8 +79,10 @@ class AgaharaweReport extends Command
     public function __construct()
     {
         parent::__construct();
-        $this->dateFrom = date('d.m.Y',strtotime("-1 days"));
-        $this->dateTo = date('d.m.Y');
+        // $this->dateFrom = date('d.m.Y',strtotime("-1 days"));
+        // $this->dateTo = date('d.m.Y');
+        $this->dateFrom = "2019-01-04";
+        $this->dateTo = "2019-01-05";
         $this->clientName = 'Agaharawe';
         $this->reportName = 'Rapport-Agaharawe';
     }
@@ -93,26 +109,26 @@ class AgaharaweReport extends Command
         $handle = fopen($fullName, 'w');
         fputcsv($handle, [
             "Article",
-            "IN",
+            "APPROVISIONEMENT",
+            "STAY",
             "OUT",
             "PU",
             "CASH",
-            "Quantite",
-            "PrixUnitaireAchat",
-            "PrixTotalAchat"
+            "GainU",
+            "GainTotal"
         ]);
 
         $articles = DB::select($this->query);
         foreach ($articles as $article) {
             fputcsv($handle, [
                 $article->Article,
-                $article->IN,
+                $article->APPROVISIONEMENT,
+                $article->STAY,
                 $article->OUT,
                 $article->PU,
                 $article->CASH,
-                $article->Quantite,
-                $article->PrixUnitaireAchat,
-                $article->PrixTotalAchat,
+                $article->GainU,
+                $article->GainTotal,
             ]);
         }
 
